@@ -1,0 +1,5 @@
+{
+  "name": "post-compact-docs-loader",
+  "description": "Compact完了後に指定したドキュメントファイルをAIに再読み込みさせるhookプラグイン",
+  "version": "1.0.0"
+}

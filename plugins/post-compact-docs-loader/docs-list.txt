@@ -1,0 +1,11 @@
+# List documentation files to reload after compact.
+# One path per line. Lines starting with # are comments.
+#
+# Path resolution:
+#   - Relative paths (e.g. docs/arch.md) -> resolved from project root ($CLAUDE_PROJECT_DIR)
+#   - Absolute paths (e.g. /Users/.../file.md) -> used as-is
+#
+# Examples:
+# CLAUDE.md
+# docs/architecture.md
+# .claude/settings.json
