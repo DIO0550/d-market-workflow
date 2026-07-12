@@ -105,19 +105,51 @@ const closingDate = lastBusinessDayOf(month);
 
 ## フォールバックの例
 
-### 悪い例: 失敗を隠すフォールバック
+### 悪い例: 不要な try-catch
+
+```ts
+function getUser(id: string): User | null {
+  try {
+    return repo.findById(id);
+  } catch {
+    return null;
+  }
+}
+```
+
+`findById` は見つからなければ null を返す設計で、ここで捕まえるべき例外はない。「念のため」の catch は、実際に何かが投げられたとき（DB接続断など）に本来伝播すべき失敗まで null に変換し、呼び出し元では「ユーザーがいない」と区別できなくなる。
+
+### 悪い例: とりあえずの既定値
+
+```ts
+// 型定義上 profile は必須フィールド
+const name = user.profile?.name ?? "";
+```
+
+型で保証済みの値への「とりあえず」の防御。もし本当に欠けるならデータ不整合であり、空文字でごまかさず失敗させるべき。この種の分岐はテストされない死んだ経路として残り続ける。
+
+### 悪い例: 動かすための既定値フォールバック
 
 ```ts
 let config: Config;
 try {
   config = await loadConfig(path);
 } catch {
-  // 読めなかったらデフォルト設定で続行
   config = DEFAULT_CONFIG;
 }
 ```
 
-設定ファイルの破損やパスミスが本番で無言のまま既定値動作になり、気づいたときには原因究明の手がかりがない。想定外の状態はそのまま失敗させる。
+仕様で合意されていないのに「動くこと」を優先した例。設定ファイルの破損やパスミスが無言のまま既定値動作になる。
+
+### 良い例: 失敗をそのまま伝播させる
+
+```ts
+function getUser(id: string): User | null {
+  return repo.findById(id);
+}
+```
+
+エラー処理を書かないことが正解の場合も多い。想定外の失敗はシステム境界（エントリポイント、リクエストハンドラ）まで伝播させ、そこで一元的に処理する。
 
 ### 良い例: 仕様としてのフォールバック
 
