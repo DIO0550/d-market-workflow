@@ -21,7 +21,7 @@ is_programming_file() {
   esac
   case "$lower" in
     *.c|*.cc|*.clj|*.cljs|*.cpp|*.cs|*.dart|*.ex|*.exs|\
-    *.fs|*.fsx|*.go|*.groovy|*.h|*.hpp|*.java|*.js|\
+    *.fs|*.fsx|*.go|*.groovy|*.h|*.hpp|*.hs|*.lhs|*.java|*.js|\
     *.jsx|*.kt|*.kts|*.lua|*.m|*.mm|*.php|*.pl|*.pm|\
     *.py|*.pyw|*.r|*.rb|*.rs|*.scala|*.sh|*.swift|\
     *.ts|*.tsx|*.vue|*.zig) return 0 ;;
