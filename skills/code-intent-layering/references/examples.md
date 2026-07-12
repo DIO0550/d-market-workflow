@@ -11,6 +11,8 @@
   - Why-not: 性能上の崖
   - 局所的な Why: 順序依存
   - 局所的な Why: セキュリティ境界
+  - 出典番号（issue・仕様書）の添え方
+- フォールバックの例
 - テストの例
 - コミットメッセージの例
 
@@ -82,6 +84,57 @@ await billing.charge(order);
 // パストラバーサル（../）対策で、ここが唯一の防御点。
 const safeName = generateFileName(upload.extension);
 ```
+
+### 出典番号（issue・仕様書）の添え方
+
+```ts
+// 悪い例: 番号だけ — 参照先が消えたり読めない環境では意図も消える
+// #482
+const cached = lruCache.get(userId);
+
+// 良い例: 要点を一行で書いた上で番号を付ける
+// 素朴な Map だとセッション増でメモリリークする（#482）。
+const cached = lruCache.get(userId);
+
+// 良い例: 仕様書番号も同様
+// 締め処理は月末ではなく末営業日に走らせる（SPEC-031 5.2）。
+const closingDate = lastBusinessDayOf(month);
+```
+
+コメントが意図を運び、番号は詳細な経緯への入口として機能する。この分担なら参照先が失われてもコメントは嘘にならない。
+
+## フォールバックの例
+
+### 悪い例: 失敗を隠すフォールバック
+
+```ts
+let config: Config;
+try {
+  config = await loadConfig(path);
+} catch {
+  // 読めなかったらデフォルト設定で続行
+  config = DEFAULT_CONFIG;
+}
+```
+
+設定ファイルの破損やパスミスが本番で無言のまま既定値動作になり、気づいたときには原因究明の手がかりがない。想定外の状態はそのまま失敗させる。
+
+### 良い例: 仕様としてのフォールバック
+
+```ts
+try {
+  return await recommendItems(userId, limit);
+} catch (err) {
+  // 推薦APIの障害時は人気順で代替する（SPEC-044）。
+  // 推薦は補助機能であり、一覧ごと落とすより劣化提供が望ましいと合意済み。
+  // 障害に気づけるよう warn ログとメトリクスを必ず残す。
+  logger.warn("recommendation fallback", { err });
+  metrics.increment("recommend.fallback");
+  return popularItems(limit);
+}
+```
+
+Why（なぜ許容するか）と出典番号のコメント、観測手段（ログ・メトリクス）が揃っている。このフォールバック挙動自体をテストで固定する。
 
 ## テストの例
 
