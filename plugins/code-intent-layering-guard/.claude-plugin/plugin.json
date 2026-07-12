@@ -1,0 +1,9 @@
+{
+  "name": "code-intent-layering-guard",
+  "version": "2.0.0",
+  "description": "プログラミング言語ファイルの編集前に code-intent-layering スキルの読み込みを要求する hook プラグイン（マーカーファイル方式のスキルゲート）",
+  "author": {
+    "name": "DIO0550"
+  },
+  "license": "MIT"
+}
