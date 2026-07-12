@@ -1,4 +1,4 @@
 interface:
   display_name: "Code Intent Layering"
-  short_description: "Separate How, What, Why, and Why-not"
+  short_description: "How、What、Why、Why-notを分離する"
   default_prompt: "Use $code-intent-layering to review code, tests, commits, and comments for intent clarity."

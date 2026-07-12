@@ -1,88 +1,89 @@
 ---
 name: code-intent-layering
-description: Guidance for applying intent layering across code, tests, commit messages, and code comments. Use when reviewing, writing, or refactoring implementation code, tests, commit logs, review feedback, or comments to keep code focused on How, tests focused on What, commits focused on Why, and comments focused on Why-not or non-obvious Why.
+description: コード、テスト、コミットメッセージ、コードコメントの意図レイヤリングを適用するためのガイド。実装コード、テストコード、コミットログ、レビューコメント、コードコメントを作成・レビュー・リファクタリングするときに使う。コードは How、テストは What、コミットは Why、コメントは Why-not または局所的で非自明な Why に寄せる。
 ---
 
 # Code Intent Layering
 
-## Overview
+## 概要
 
-Use intent layering to put each kind of information where future maintainers are most likely to look for it:
+意図レイヤリングは、将来のメンテナが探しに行く場所へ情報を置くための指針です。
 
-- **Code: How** the behavior is implemented.
-- **Tests: What** behavior must hold.
-- **Commit logs: Why** the change was made.
-- **Code comments: Why-not**, and sometimes **Why**, when the reason is local, surprising, or easy to lose.
+- **コード: How** — 振る舞いをどう実装しているか。
+- **テスト: What** — どの振る舞いが成立しなければならないか。
+- **コミットログ: Why** — なぜその変更を入れたのか。
+- **コードコメント: Why-not** — なぜ単純化・代替案・一見よさそうな変更を採らないのか。
+- **コードコメント: 局所的な Why** — その場で読まないと誤編集につながる、非自明で失われやすい理由。
 
-This is a heuristic, not a ban. Prefer the default layer, then make exceptions when removing context would make the system harder to maintain.
+これは厳格な禁止ルールではなく、保守性を上げるためのヒューリスティックです。原則の置き場所に寄せつつ、文脈を移動すると危険な場合だけ例外を認めます。
 
-## Workflow
+## ワークフロー
 
-1. Identify the artifact being written or reviewed: implementation code, test code, commit message, or code comment.
-2. Ask which intent belongs there by default.
-3. Move misplaced context to a better layer when possible.
-4. Keep exceptions only when the context must be visible at the local decision point.
+1. 書く・読む対象が、実装コード、テスト、コミットメッセージ、コードコメントのどれかを確認する。
+2. その成果物が標準で答えるべき意図を確認する。
+3. 置き場所がずれている説明は、より適切なレイヤーへ移す。
+4. その場に残さないと誤解や危険な編集を招く説明だけ、例外として残す。
 
-## Layer Rules
+## レイヤールール
 
-### Code: How
+### コード: How
 
-Make implementation code show the mechanism clearly:
+実装コードでは、仕組みが自然に読める状態を目指します。
 
-- Prefer readable names, small functions, and explicit control flow over explanatory comments.
-- Let domain terms and types carry intent where possible.
-- Avoid encoding broad product rationale in implementation bodies unless it directly affects the algorithm.
+- 説明コメントに頼る前に、名前、型、小さな関数、明示的な制御フローで表現する。
+- ドメイン用語や型で意図を運べるなら、コメントではなくコード構造に寄せる。
+- アルゴリズムに直接影響しない広いプロダクト事情や判断理由は、実装本体へ埋め込みすぎない。
 
-### Tests: What
+### テスト: What
 
-Make tests specify observable behavior:
+テストでは、観測可能な振る舞いと守るべき契約を明確にします。
 
-- Name tests by the condition and expected result.
-- Assert outcomes, invariants, contracts, and edge cases.
-- Avoid duplicating implementation details unless the test intentionally pins a low-level contract.
+- テスト名には条件と期待結果を書く。
+- 結果、不変条件、契約、境界値、回帰条件を検証する。
+- 低レベルな契約を固定する意図がない限り、実装手順の複製にならないようにする。
 
-### Commit Logs: Why
+### コミットログ: Why
 
-Make commits explain the motivation and tradeoff behind the diff:
+コミットログでは、diff だけでは復元しにくい動機と判断を残します。
 
-- State the user, product, operational, or technical reason for the change.
-- Include the bug, constraint, regression, incident, or migration pressure when relevant.
-- Do not merely summarize the diff; the diff already shows what changed.
+- ユーザー価値、プロダクト事情、運用上の制約、技術的負債、障害対応など、変更理由を書く。
+- なぜ今なのか、なぜこの方向なのかを必要に応じて補足する。
+- diff の要約だけで終わらせない。何が変わったかは diff が示している。
 
-### Code Comments: Why-not, plus Local Why
+### コードコメント: Why-not と局所的な Why
 
-Use comments mainly for decisions that are not obvious from the code:
+コードコメントは、コードだけでは読み取れない制約を残す場所として使います。
 
-- Explain **Why-not**: rejected alternatives, dangerous simplifications, historical traps, compatibility constraints, performance cliffs, ordering dependencies, or security boundaries.
-- Also explain **Why** when the reason must be read next to the code to prevent an incorrect edit.
-- Delete comments that only restate the code's How.
-- Prefer comments that describe the constraint, not the author’s thought process.
+- **Why-not** を書く: 却下した代替案、危険な単純化、過去の落とし穴、互換性制約、性能上の崖、順序依存、セキュリティ境界など。
+- **局所的な Why** も書いてよい: その理由をコードのそばで読めないと、将来の編集者が誤って壊しそうな場合。
+- コードの How を言い換えるだけのコメントは消す。
+- 「自分が何を考えたか」より、「この場に存在する制約」を書く。
 
-Good comment prompts:
+コメントを書く前の問い:
 
-- “Why can’t this be simpler?”
-- “What future change would break this?”
-- “What alternative will a maintainer probably try, and why is it wrong here?”
-- “What local rationale is not recoverable from names, tests, or commit history?”
+- 「なぜもっと単純にできないのか？」
+- 「どんな将来の変更がここを壊すのか？」
+- 「メンテナが試しそうな代替案は何で、なぜここでは誤りなのか？」
+- 「名前、型、テスト、コミット履歴から復元できない局所的な理由は何か？」
 
-## Review Checklist
+## レビュー用チェックリスト
 
-Use this checklist during implementation or review:
+実装やレビューでは次を確認します。
 
-- Code answers **How** without needing comments that paraphrase statements.
-- Tests answer **What** users or callers can rely on.
-- Commit messages answer **Why now** and **why this direction**.
-- Comments answer **Why-not** or a local **Why** that would otherwise be lost.
-- Any duplicated explanation is intentional and valuable at the point of use.
+- コードは、文の言い換えコメントなしで **How** を読める。
+- テストは、ユーザーや呼び出し元が依存できる **What** を示している。
+- コミットメッセージは、**Why now** と **why this direction** を説明している。
+- コメントは、**Why-not** または失われやすい局所的な **Why** を説明している。
+- 同じ説明を複数箇所に置く場合、その重複が読み手の判断に役立つ。
 
-## Commit Message Pattern
+## コミットメッセージの型
 
-Use this shape when asked to draft commits:
+コミット作成を依頼されたら、次の形を基本にします。
 
 ```text
-<imperative summary of change>
+<命令形の変更要約>
 
-Explain why the change is needed, what constraint or problem it addresses,
-and why the chosen direction is appropriate. Mention notable rejected options
-only when they matter for future maintenance.
+なぜこの変更が必要なのか、どの制約や問題に対応しているのか、
+なぜこの方向を選んだのかを書く。将来の保守に効く場合だけ、
+重要な却下案も補足する。
 ```
