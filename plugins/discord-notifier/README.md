@@ -50,14 +50,33 @@ export DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/xxxx/yyyy"
 
 > **注意:** Webhook URL は秘密情報です。リポジトリ管理下のファイルには書き込まず、環境変数で管理してください。
 
-## 設定
+## 設定ファイル
 
-- **通知するパターンの選択** — `hooks/hooks.json` から不要なパターンのエントリを削除してください。`setup` スキルを実行すると、パターンを選んで hooks.json を書き換えられます。
-- **一時的な OFF** — `DISCORD_NOTIFY_ENABLED` を `false`（または `0` / `no` / `off`）に設定すると、Webhook URL を残したまますべての通知を止められます。既定は有効です。
+通知パターンの ON/OFF などの非秘密設定は、ワークスペースの `.plugin-workspace/discord-notifier/config.json` で行います。`setup` スキルを実行すると、パターンを選んでこのファイルを作成できます。
 
-```bash
-export DISCORD_NOTIFY_ENABLED=false
+```json
+{
+  "enabled": true,
+  "events": {
+    "pr": true,
+    "commit": true,
+    "push": true,
+    "stop": true
+  }
+}
 ```
+
+| キー | 内容 | 既定値 |
+| --- | --- | --- |
+| `enabled` | 全体の ON/OFF。環境変数 `DISCORD_NOTIFY_ENABLED`（`false` / `0` / `no` / `off`）が設定されていればそちらが優先 | `true` |
+| `events.pr` | PR 作成の通知 | `true` |
+| `events.commit` | コミット (Fix) の通知 | `true` |
+| `events.push` | push の通知 | `true` |
+| `events.stop` | タスク完了の通知 | `true` |
+
+- 設定ファイル自体・各キーとも省略可能で、省略時はすべて有効です（ファイルがなくても動きます）
+- **Webhook URL はこのファイルには書けません**。秘密情報のため環境変数 `DISCORD_WEBHOOK_URL` でのみ受け取ります
+- `.plugin-workspace/` はワークスペースローカルな設定置き場のため Git 管理外にしてください
 
 ## 依存
 

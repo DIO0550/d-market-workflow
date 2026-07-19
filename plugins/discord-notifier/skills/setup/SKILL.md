@@ -1,63 +1,37 @@
 ---
 name: setup
-description: 通知するパターン（pr / commit / push / stop）を選んで hooks/hooks.json を設定する
+description: 通知するパターン（pr / commit / push / stop）を選んで .plugin-workspace/discord-notifier/config.json を作成する
 disable-model-invocation: true
-allowed-tools: Read, Write, AskUserQuestion
+allowed-tools: Read, Write, Edit, Bash, AskUserQuestion
 ---
 
 # discord-notifier セットアップ
 
-hook は通知パターンごとにスクリプトが分かれており、`hooks/hooks.json` に登録されているものだけが通知される。
-このスキルは、通知したいパターンを選んで `plugins/discord-notifier/hooks/hooks.json` を書き換えるだけのもの。
+通知パターンの ON/OFF を設定ファイル `.plugin-workspace/discord-notifier/config.json` に書き込む。
+Webhook URL は環境変数 `DISCORD_WEBHOOK_URL` で設定するもので、このスキルでは扱わない（設定ファイルにも決して書かない）。
 
-Webhook URL は環境変数 `DISCORD_WEBHOOK_URL` で設定する（このスキルでは扱わない）。
-
-## 手順
-
-1. `plugins/discord-notifier/hooks/hooks.json` を Read し、現在登録されているパターンを提示する
-2. AskUserQuestion（multiSelect）で通知するパターンを選んでもらう:
-   - PR 作成（`notify-pr.sh`）
-   - コミット (Fix)（`notify-commit.sh`）
-   - push（`notify-push.sh`）
-   - タスク完了（`notify-stop.sh`）
-3. 下のテンプレートから選ばれたパターンのエントリだけを残した JSON を Write する
-4. `DISCORD_WEBHOOK_URL` が未設定なら通知されないこと（`export DISCORD_WEBHOOK_URL=...` が必要）を案内して完了
-
-## hooks.json テンプレート（全パターン有効時）
+## 設定ファイルのフォーマット
 
 ```json
 {
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Bash|mcp__github__create_pull_request",
-        "hooks": [
-          { "type": "command", "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/notify-pr.sh" }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          { "type": "command", "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/notify-push.sh" }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          { "type": "command", "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/notify-commit.sh" }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          { "type": "command", "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/notify-stop.sh" }
-        ]
-      }
-    ]
+  "enabled": true,
+  "events": {
+    "pr": true,
+    "commit": true,
+    "push": true,
+    "stop": true
   }
 }
 ```
 
-- 不要なパターンは対応するエントリごと削除する（`PostToolUse` / `Stop` が空になる場合はキーごと削除する）
-- hooks.json の変更は新しいセッションから反映される
+- `enabled` — 全体の ON/OFF。環境変数 `DISCORD_NOTIFY_ENABLED` が設定されていればそちらが優先される
+- `events.*` — パターンごとの ON/OFF
+- ファイル自体・各キーとも省略時は `true`（設定ファイルがなくても全パターン通知される）
+
+## 手順
+
+1. `.plugin-workspace/discord-notifier/config.json` を Read し、存在すれば現在の設定を提示する
+2. AskUserQuestion（multiSelect）で通知するパターン（PR 作成 / コミット (Fix) / push / タスク完了）を選んでもらう
+3. Bash で `mkdir -p "${CLAUDE_PROJECT_DIR:-.}/.plugin-workspace/discord-notifier"` を実行し、上のフォーマットで config.json を Write する（選ばれなかったパターンは `false`）
+4. リポジトリルートの `.gitignore` に `.plugin-workspace/` が含まれるか確認し、なければ追記する
+5. `DISCORD_WEBHOOK_URL` が未設定なら通知されないこと（`export DISCORD_WEBHOOK_URL=...` が必要）を案内して完了

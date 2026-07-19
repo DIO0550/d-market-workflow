@@ -6,6 +6,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
 
 input="$(cat)"
 notify_configured || exit 0
+event_enabled commit || exit 0
 
 command="$(bash_command "$input")"
 grep -qE '(^|[^[:alnum:]_-])git[[:space:]]+commit' <<< "$command" || exit 0

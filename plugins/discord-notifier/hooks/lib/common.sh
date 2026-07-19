@@ -3,13 +3,31 @@
 
 webhook="${DISCORD_WEBHOOK_URL:-}"
 
+# 設定ファイル（非秘密設定のみ。Webhook URL は環境変数でしか受け取らない）
+config_file="${CLAUDE_PROJECT_DIR:-.}/.plugin-workspace/discord-notifier/config.json"
+
 # 通知可能な状態か（URL 未設定・一時 OFF なら通知しない）
+# ON/OFF の優先順位: 環境変数 DISCORD_NOTIFY_ENABLED > config.json の enabled > 既定 true
 notify_configured() {
   [ -n "$webhook" ] || return 1
-  case "${DISCORD_NOTIFY_ENABLED:-true}" in
+  local enabled="${DISCORD_NOTIFY_ENABLED:-}"
+  if [ -z "$enabled" ] && [ -f "$config_file" ]; then
+    # jq の // は false も空扱いするため使わず、null との比較で既定値に倒す
+    enabled="$(jq -r '.enabled' "$config_file" 2>/dev/null || true)"
+    [ "$enabled" = "null" ] && enabled=""
+  fi
+  case "${enabled:-true}" in
     false|0|no|off) return 1 ;;
   esac
   return 0
+}
+
+# event_enabled <pr|commit|push|stop> — config.json でパターンが無効化されていないか（既定: 有効）
+event_enabled() {
+  [ -f "$config_file" ] || return 0
+  local v
+  v="$(jq -r --arg e "$1" '.events[$e]' "$config_file" 2>/dev/null || true)"
+  [ "$v" != "false" ]
 }
 
 # bash_command <input_json> — Bash ツールの実行コマンドを取り出す（Bash 以外は空）
