@@ -78,6 +78,36 @@ export DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/xxxx/yyyy"
 - **Webhook URL はこのファイルには書けません**。秘密情報のため環境変数 `DISCORD_WEBHOOK_URL` でのみ受け取ります
 - `.plugin-workspace/` はワークスペースローカルな設定置き場のため Git 管理外にしてください
 
+## devcontainer での利用
+
+1. ホストのシェル設定ファイルに書き込んで永続化する:
+
+bash の場合:
+
+```bash
+echo 'export DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/xxxx/yyyy"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+zsh の場合:
+
+```bash
+echo 'export DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/xxxx/yyyy"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+2. `devcontainer.json` でホストの値をコンテナへ引き継ぐ:
+
+```json
+{
+  "remoteEnv": {
+    "DISCORD_WEBHOOK_URL": "${localEnv:DISCORD_WEBHOOK_URL}"
+  }
+}
+```
+
+値そのものを `devcontainer.json` に直接書かないでください（コミットされて Webhook URL が漏えいします）。
+
 ## 依存
 
 - `jq`
