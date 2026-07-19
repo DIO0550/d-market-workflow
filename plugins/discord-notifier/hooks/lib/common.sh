@@ -25,16 +25,24 @@ find_pr_url() {
 }
 
 # send_embed <input_json> <title> <description> <color>
+#
+# 全通知共通の基本フォーマット:
+#   - タイトル: 絵文字 + イベント名
+#   - 本文: イベントごとの詳細（PR の URL、コミットメッセージ等）
+#   - フィールド: リポジトリ / ブランチ / セッション（先頭 8 文字）
+#   - タイムスタンプ
 send_embed() {
   local input="$1" title="$2" description="$3" color="$4"
-  local repo_name session_id payload
+  local repo_name branch session_id payload
   repo_name="$(basename "${CLAUDE_PROJECT_DIR:-$(pwd)}")"
+  branch="$(git -C "${CLAUDE_PROJECT_DIR:-.}" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
   session_id="$(jq -r '.session_id // empty' <<< "$input" | cut -c1-8)"
 
   payload="$(jq -n \
     --arg title "$title" \
     --arg description "$description" \
     --arg repo "$repo_name" \
+    --arg branch "$branch" \
     --arg session "$session_id" \
     --argjson color "$color" \
     '{
@@ -44,6 +52,7 @@ send_embed() {
         color: $color,
         fields: ([
           { name: "リポジトリ", value: $repo, inline: true },
+          (if $branch != "" then { name: "ブランチ", value: $branch, inline: true } else empty end),
           (if $session != "" then { name: "セッション", value: $session, inline: true } else empty end)
         ]),
         timestamp: (now | todate)
