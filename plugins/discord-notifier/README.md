@@ -16,29 +16,19 @@ PR の作成・コミット (Fix)・push・タスク完了を Discord に通知�
 ## セットアップ
 
 1. このプラグインを Claude Code のプラグインとして有効化してください。
-2. `setup` スキルを実行すると、対話形式で Webhook URL・通知イベントを設定できます。設定はワークスペースの `.plugin-workspace/discord-notifier/config` に保存されます。
-
-環境変数で直接設定することもできます:
+2. Discord サーバーの「サーバー設定 → 連携サービス → ウェブフック」で Webhook を作成し、その URL を環境変数に設定してください。
 
 ```bash
 export DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/xxxx/yyyy"
 ```
 
-Webhook URL が未設定の場合、hook は何もせず正常終了します（作業をブロックしません）。通知の送信に失敗した場合も同様です。
+`DISCORD_WEBHOOK_URL` が未設定の場合、hook は何もせず正常終了します（作業をブロックしません）。通知の送信に失敗した場合も同様です。
 
-> **注意:** Webhook URL は秘密情報です。`.plugin-workspace/` は必ず `.gitignore` に追加してください（`setup` スキルが自動で確認・追記します）。
+`setup` スキルを実行すると、環境変数の設定状況の確認・export スニペットの提示・テスト通知を対話形式で行えます（スキル自体はファイルへの書き込みを行いません）。
+
+> **注意:** Webhook URL は秘密情報です。リポジトリ管理下のファイルには書き込まず、環境変数（シェルの設定ファイル等）で管理してください。
 
 ## 設定
-
-設定は次の優先順位で解決されます: **環境変数 > `.plugin-workspace/discord-notifier/config` > 既定値**
-
-config は `KEY=VALUE` 形式で、環境変数と同じキーが使えます:
-
-```
-DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/xxxx/yyyy
-DISCORD_NOTIFY_ENABLED=true
-DISCORD_NOTIFY_EVENTS=pr,commit,push,stop
-```
 
 Webhook URL を残したまま一時的に通知を止めたい場合は、`DISCORD_NOTIFY_ENABLED` を `false`（または `0` / `no` / `off`）に設定してください。既定は有効です。
 

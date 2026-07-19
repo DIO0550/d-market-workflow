@@ -5,26 +5,16 @@ set -uo pipefail
 mode="${1:-post-tool}"
 input="$(cat)"
 
-# 設定の優先順位: 環境変数 > .plugin-workspace の設定ファイル > 既定値
-config_file="${CLAUDE_PROJECT_DIR:-.}/.plugin-workspace/discord-notifier/config"
-
-cfg() {
-  [ -f "$config_file" ] || return 0
-  sed -n "s/^[[:space:]]*$1=//p" "$config_file" | tail -1 | sed 's/^["'\'']//; s/["'\'']$//'
-}
-
-webhook="${DISCORD_WEBHOOK_URL:-$(cfg DISCORD_WEBHOOK_URL)}"
+webhook="${DISCORD_WEBHOOK_URL:-}"
 [ -z "$webhook" ] && exit 0
 
 # URL を残したまま一時的に通知を止めるための明示スイッチ
-enabled="${DISCORD_NOTIFY_ENABLED:-$(cfg DISCORD_NOTIFY_ENABLED)}"
-case "${enabled:-true}" in
+case "${DISCORD_NOTIFY_ENABLED:-true}" in
   false|0|no|off) exit 0 ;;
 esac
 
 # 通知するイベントをカンマ区切りで指定（既定はすべて）
-events="${DISCORD_NOTIFY_EVENTS:-$(cfg DISCORD_NOTIFY_EVENTS)}"
-events="${events:-pr,commit,push,stop}"
+events="${DISCORD_NOTIFY_EVENTS:-pr,commit,push,stop}"
 
 enabled() {
   case ",${events}," in

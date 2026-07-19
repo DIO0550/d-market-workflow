@@ -1,5 +1,2 @@
 # code-intent-layering-guard のスキル発火マーカー置き場
 .plugin/
-
-# プラグインのワークスペース設定置き場（discord-notifier の Webhook URL 等の秘密情報を含む）
-.plugin-workspace/
