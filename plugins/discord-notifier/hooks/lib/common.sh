@@ -42,6 +42,17 @@ find_pr_url() {
     | head -1
 }
 
+# repo_full_name — origin の URL から owner/repo を取り出す（取得できなければ失敗）
+# https / ssh / git プロトコルいずれの URL 形式にも対応する
+repo_full_name() {
+  local url
+  url="$(git -C "${CLAUDE_PROJECT_DIR:-.}" remote get-url origin 2>/dev/null || true)"
+  [ -n "$url" ] || return 1
+  url="${url%/}"
+  url="${url%.git}"
+  grep -oE '[^/:]+/[^/:]+$' <<< "$url"
+}
+
 # send_embed <input_json> <title> <description> <color>
 #
 # 全通知共通の基本フォーマット:
@@ -52,7 +63,10 @@ find_pr_url() {
 send_embed() {
   local input="$1" title="$2" description="$3" color="$4"
   local repo_name branch session_id payload
-  repo_name="$(basename "${CLAUDE_PROJECT_DIR:-$(pwd)}")"
+  # ディレクトリ名はクローン先の名前次第でリポジトリ名と食い違うため、
+  # origin の URL を優先し、取れない場合のみディレクトリ名に倒す
+  repo_name="$(repo_full_name || true)"
+  [ -n "$repo_name" ] || repo_name="$(basename "${CLAUDE_PROJECT_DIR:-$(pwd)}")"
   branch="$(git -C "${CLAUDE_PROJECT_DIR:-.}" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
   session_id="$(jq -r '.session_id // empty' <<< "$input" | cut -c1-8)"
 
