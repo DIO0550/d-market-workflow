@@ -78,6 +78,30 @@ export DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/xxxx/yyyy"
 - **Webhook URL はこのファイルには書けません**。秘密情報のため環境変数 `DISCORD_WEBHOOK_URL` でのみ受け取ります
 - `.plugin-workspace/` はワークスペースローカルな設定置き場のため Git 管理外にしてください
 
+## devcontainer での利用
+
+ホスト側の環境変数をそのままコンテナに引き継ぐには、ホストで永続化した上で `devcontainer.json` の `${localEnv:...}` を使います。
+
+1. ホストのシェル設定（`~/.bashrc` 等）で永続化する:
+
+```bash
+export DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/xxxx/yyyy"
+```
+
+2. `devcontainer.json` でホストの値をコンテナへ引き継ぐ:
+
+```json
+{
+  "remoteEnv": {
+    "DISCORD_WEBHOOK_URL": "${localEnv:DISCORD_WEBHOOK_URL}"
+  }
+}
+```
+
+- `remoteEnv` はエディタ経由のプロセス（統合ターミナルやそこから起動する Claude Code）に反映され、設定変更はウィンドウのリロードだけで反映されます。コンテナ内のすべてのプロセスに必要な場合は `containerEnv`（反映にはコンテナの Rebuild が必要）を使ってください
+- `${localEnv:...}` はエディタのプロセスから見える環境変数を参照します。GUI からエディタを起動すると `~/.bashrc` が読まれず値が空になることがあるため、ターミナルから `code .` などで起動するのが確実です
+- 値そのものを `devcontainer.json` に直接書かないでください（コミットされて Webhook URL が漏えいします）
+
 ## 依存
 
 - `jq`
