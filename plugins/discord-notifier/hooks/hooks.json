@@ -6,7 +6,25 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/notify-discord.sh post-tool"
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/notify-pr.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/notify-push.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/notify-commit.sh"
           }
         ]
       }
@@ -16,7 +34,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/notify-discord.sh stop"
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/notify-stop.sh"
           }
         ]
       }
