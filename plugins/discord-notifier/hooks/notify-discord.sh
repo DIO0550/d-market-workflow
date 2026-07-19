@@ -8,6 +8,11 @@ input="$(cat)"
 webhook="${DISCORD_WEBHOOK_URL:-}"
 [ -z "$webhook" ] && exit 0
 
+# URL を残したまま一時的に通知を止めるための明示スイッチ
+case "${DISCORD_NOTIFY_ENABLED:-true}" in
+  false|0|no|off) exit 0 ;;
+esac
+
 # 通知するイベントをカンマ区切りで指定（既定はすべて）
 events="${DISCORD_NOTIFY_EVENTS:-pr,commit,push,stop}"
 

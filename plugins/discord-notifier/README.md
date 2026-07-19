@@ -26,6 +26,12 @@ export DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/xxxx/yyyy"
 
 ## 設定
 
+Webhook URL を残したまま一時的に通知を止めたい場合は、`DISCORD_NOTIFY_ENABLED` を `false`（または `0` / `no` / `off`）に設定してください。既定は有効です。
+
+```bash
+export DISCORD_NOTIFY_ENABLED=false
+```
+
 通知するイベントは `DISCORD_NOTIFY_EVENTS` 環境変数（カンマ区切り）で絞り込めます。既定はすべて有効です。
 
 ```bash
