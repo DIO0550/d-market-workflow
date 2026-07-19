@@ -80,11 +80,20 @@ export DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/xxxx/yyyy"
 
 ## devcontainer での利用
 
-1. ホストの `~/.bashrc`（zsh は `~/.zshrc`）に書き込んで永続化する:
+1. ホストのシェル設定ファイルに書き込んで永続化する:
+
+bash の場合:
 
 ```bash
 echo 'export DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/xxxx/yyyy"' >> ~/.bashrc
 source ~/.bashrc
+```
+
+zsh の場合:
+
+```bash
+echo 'export DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/xxxx/yyyy"' >> ~/.zshrc
+source ~/.zshrc
 ```
 
 2. `devcontainer.json` でホストの値をコンテナへ引き継ぐ:
