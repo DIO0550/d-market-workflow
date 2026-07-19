@@ -82,12 +82,18 @@ export DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/xxxx/yyyy"
 
 ホスト側の環境変数をそのままコンテナに引き継ぐには、ホストで永続化した上で `devcontainer.json` の `${localEnv:...}` を使います。
 
-1. ホスト側で環境変数を OS レベルで永続化する。シェルの設定ファイル（`~/.bashrc` 等）はそのシェルから起動したプロセスにしか効かないため、GUI からエディタを起動する場合は次の方法で登録する:
+1. ホストのシェル設定ファイル（`~/.bashrc` / `~/.zshrc` 等）で永続化する:
+
+```bash
+export DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/xxxx/yyyy"
+```
+
+シェルの設定ファイルは、そのシェルから起動したプロセスにだけ引き継がれます。ターミナルから `code .` などでエディタを起動する運用ならこれで十分です。GUI（Dock・スタートメニュー等）からエディタを直接起動する場合はシェル設定が読まれないため、OS レベルで登録してください:
 
 | ホスト OS | 方法 |
 | --- | --- |
 | Windows | `setx DISCORD_WEBHOOK_URL "https://discord.com/api/webhooks/xxxx/yyyy"`（または「システムのプロパティ → 環境変数」。反映にはエディタの再起動が必要） |
-| macOS | ログイン時に `launchctl setenv DISCORD_WEBHOOK_URL ...` を実行する LaunchAgent を登録する（または常にターミナルから `code .` で起動する運用にして `~/.zshrc` に export） |
+| macOS | ログイン時に `launchctl setenv DISCORD_WEBHOOK_URL ...` を実行する LaunchAgent を登録する |
 | Linux | `~/.config/environment.d/discord-notifier.conf` に `DISCORD_WEBHOOK_URL=https://...` を記載（systemd ユーザーセッション。再ログインで反映） |
 
 2. `devcontainer.json` でホストの値をコンテナへ引き継ぐ:
@@ -101,7 +107,7 @@ export DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/xxxx/yyyy"
 ```
 
 - `remoteEnv` はエディタ経由のプロセス（統合ターミナルやそこから起動する Claude Code）に反映され、設定変更はウィンドウのリロードだけで反映されます。コンテナ内のすべてのプロセスに必要な場合は `containerEnv`（反映にはコンテナの Rebuild が必要）を使ってください
-- `${localEnv:...}` はエディタのプロセスから見える環境変数を参照します。上の表のように OS レベルで登録してあれば、GUI から起動しても届きます。シェルの設定ファイルにしか書いていない場合は、そのシェルのターミナルから `code .` などで起動しない限り値が空になります
+- `${localEnv:...}` はエディタのプロセスから見える環境変数を参照します。シェル設定に書いた場合はそのシェルのターミナルから起動したとき、OS レベルで登録した場合は起動方法を問わず届きます
 - 値そのものを `devcontainer.json` に直接書かないでください（コミットされて Webhook URL が漏えいします）
 
 ## 依存
