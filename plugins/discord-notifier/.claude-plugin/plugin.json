@@ -1,0 +1,9 @@
+{
+  "name": "discord-notifier",
+  "version": "1.0.0",
+  "description": "PR 作成・コミット・push・タスク完了を Discord Webhook に通知する hook プラグイン",
+  "author": {
+    "name": "DIO0550"
+  },
+  "license": "MIT"
+}
