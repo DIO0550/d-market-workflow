@@ -1,0 +1,36 @@
+{
+  "name": "d-market-workflow",
+  "owner": {
+    "name": "DIO0550"
+  },
+  "metadata": {
+    "description": "Claude Code Workflow Plugins Marketplace",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "code-intent-layering-guard",
+      "source": "./plugins/code-intent-layering-guard",
+      "description": "プログラミング言語ファイルの編集前に code-intent-layering スキルの読み込みを要求する hook プラグイン（マーカーファイル方式のスキルゲート）",
+      "version": "2.0.0",
+      "category": "workflow",
+      "tags": ["hooks", "skill-gate", "code-intent-layering"]
+    },
+    {
+      "name": "discord-notifier",
+      "source": "./plugins/discord-notifier",
+      "description": "PR 作成・コミット・push・タスク完了を Discord Webhook に通知する hook プラグイン",
+      "version": "1.0.0",
+      "category": "workflow",
+      "tags": ["hooks", "discord", "notification"]
+    },
+    {
+      "name": "post-compact-docs-loader",
+      "source": "./plugins/post-compact-docs-loader",
+      "description": "Compact完了後に指定したドキュメントファイルをAIに再読み込みさせるhookプラグイン",
+      "version": "1.0.1",
+      "category": "workflow",
+      "tags": ["hooks", "compact", "docs-reload"]
+    }
+  ]
+}
