@@ -30,8 +30,10 @@ Webhook URL は環境変数 `DISCORD_WEBHOOK_URL` で設定するもので、こ
 
 ## 手順
 
-1. `.plugin-workspace/discord-notifier/config.json` を Read し、存在すれば現在の設定を提示する
-2. AskUserQuestion（multiSelect）で通知するパターン（PR 作成 / コミット (Fix) / push / タスク完了）を選んでもらう
-3. Bash で `mkdir -p "${CLAUDE_PROJECT_DIR:-.}/.plugin-workspace/discord-notifier"` を実行し、上のフォーマットで config.json を Write する（選ばれなかったパターンは `false`）
-4. リポジトリルートの `.gitignore` に `.plugin-workspace/` が含まれるか確認し、なければ追記する
-5. `DISCORD_WEBHOOK_URL` が未設定なら通知されないこと（`export DISCORD_WEBHOOK_URL=...` が必要）を案内して完了
+1. `git rev-parse --path-format=absolute --git-common-dir` の親ディレクトリを取り、リポジトリのメイン working tree（`$ROOT`）を確定する。git 管理下でなければ `${CLAUDE_PROJECT_DIR:-.}` を `$ROOT` に使う
+   （git worktree 内で実行しても常にメイン working tree に書き込むことで、worktree 間で設定を共有し hook 側の読み取りと一致させる）
+2. `$ROOT/.plugin-workspace/discord-notifier/config.json` を Read し、存在すれば現在の設定を提示する
+3. AskUserQuestion（multiSelect）で通知するパターン（PR 作成 / コミット (Fix) / push / タスク完了）を選んでもらう
+4. Bash で `mkdir -p "$ROOT/.plugin-workspace/discord-notifier"` を実行し、上のフォーマットで config.json を Write する（選ばれなかったパターンは `false`）
+5. `$ROOT/.gitignore` に `.plugin-workspace/` が含まれるか確認し、なければ追記する
+6. `DISCORD_WEBHOOK_URL` が未設定なら通知されないこと（`export DISCORD_WEBHOOK_URL=...` が必要）を案内して完了

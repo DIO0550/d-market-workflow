@@ -3,18 +3,55 @@
 
 webhook="${DISCORD_WEBHOOK_URL:-}"
 
-# 設定ファイル（非秘密設定のみ。Webhook URL は環境変数でしか受け取らない）
-config_file="${CLAUDE_PROJECT_DIR:-.}/.plugin-workspace/discord-notifier/config.json"
+# hook_cwd <input_json> — hook 発火時のツール実行 cwd を返す
+# 優先順位: 入力 JSON の cwd（ツールが実際に走ったディレクトリ）> CLAUDE_PROJECT_DIR > 現在の cwd。
+# worktree で作業していた場合、CLAUDE_PROJECT_DIR はメインの working tree を指し得るため、
+# 入力 cwd を優先することで worktree 側のブランチ/コミット情報を取得できる。
+hook_cwd() {
+  local cwd
+  cwd="$(jq -r '.cwd // empty' <<< "$1" 2>/dev/null || true)"
+  if [ -n "$cwd" ] && [ -d "$cwd" ]; then
+    printf '%s\n' "$cwd"
+    return
+  fi
+  printf '%s\n' "${CLAUDE_PROJECT_DIR:-$(pwd)}"
+}
+
+# workspace_root <input_json> — 設定ファイル探索の起点となるワークスペースルート
+# git worktree の中で発火した場合はメインの working tree を返す（common .git の親）。
+# git 管理下でなければ hook_cwd をそのまま返す。
+workspace_root() {
+  local cwd common_dir root
+  cwd="$(hook_cwd "$1")"
+  common_dir="$(git -C "$cwd" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
+  if [ -n "$common_dir" ] && [ -d "$common_dir" ]; then
+    root="$(dirname "$common_dir")"
+    if [ -d "$root" ]; then
+      printf '%s\n' "$root"
+      return
+    fi
+  fi
+  printf '%s\n' "$cwd"
+}
+
+# config_file_path <input_json> — 設定ファイルの絶対パス
+config_file_path() {
+  printf '%s/.plugin-workspace/discord-notifier/config.json\n' "$(workspace_root "$1")"
+}
 
 # 通知可能な状態か（URL 未設定・一時 OFF なら通知しない）
 # ON/OFF の優先順位: 環境変数 DISCORD_NOTIFY_ENABLED > config.json の enabled > 既定 true
 notify_configured() {
   [ -n "$webhook" ] || return 1
-  local enabled="${DISCORD_NOTIFY_ENABLED:-}"
-  if [ -z "$enabled" ] && [ -f "$config_file" ]; then
-    # jq の // は false も空扱いするため使わず、null との比較で既定値に倒す
-    enabled="$(jq -r '.enabled' "$config_file" 2>/dev/null || true)"
-    [ "$enabled" = "null" ] && enabled=""
+  local enabled config_file
+  enabled="${DISCORD_NOTIFY_ENABLED:-}"
+  if [ -z "$enabled" ]; then
+    config_file="$(config_file_path "$1")"
+    if [ -f "$config_file" ]; then
+      # jq の // は false も空扱いするため使わず、null との比較で既定値に倒す
+      enabled="$(jq -r '.enabled' "$config_file" 2>/dev/null || true)"
+      [ "$enabled" = "null" ] && enabled=""
+    fi
   fi
   case "${enabled:-true}" in
     false|0|no|off) return 1 ;;
@@ -22,11 +59,14 @@ notify_configured() {
   return 0
 }
 
-# event_enabled <pr|commit|push|stop> — config.json でパターンが無効化されていないか（既定: 有効）
+# event_enabled <input_json> <pr|commit|push|stop>
+# config.json でパターンが無効化されていないか（既定: 有効）
 event_enabled() {
+  local config_file
+  config_file="$(config_file_path "$1")"
   [ -f "$config_file" ] || return 0
   local v
-  v="$(jq -r --arg e "$1" '.events[$e]' "$config_file" 2>/dev/null || true)"
+  v="$(jq -r --arg e "$2" '.events[$e]' "$config_file" 2>/dev/null || true)"
   [ "$v" != "false" ]
 }
 
@@ -42,11 +82,12 @@ find_pr_url() {
     | head -1
 }
 
-# repo_full_name — origin の URL から owner/repo を取り出す（取得できなければ失敗）
+# repo_full_name <input_json> — origin の URL から owner/repo を取り出す（取得できなければ失敗）
 # https / ssh / git プロトコルいずれの URL 形式にも対応する
 repo_full_name() {
-  local url
-  url="$(git -C "${CLAUDE_PROJECT_DIR:-.}" remote get-url origin 2>/dev/null || true)"
+  local url cwd
+  cwd="$(hook_cwd "$1")"
+  url="$(git -C "$cwd" remote get-url origin 2>/dev/null || true)"
   [ -n "$url" ] || return 1
   url="${url%/}"
   url="${url%.git}"
@@ -62,12 +103,13 @@ repo_full_name() {
 #   - タイムスタンプ
 send_embed() {
   local input="$1" title="$2" description="$3" color="$4"
-  local repo_name branch session_id payload
+  local cwd repo_name branch session_id payload
+  cwd="$(hook_cwd "$input")"
   # ディレクトリ名はクローン先の名前次第でリポジトリ名と食い違うため、
   # origin の URL を優先し、取れない場合のみディレクトリ名に倒す
-  repo_name="$(repo_full_name || true)"
-  [ -n "$repo_name" ] || repo_name="$(basename "${CLAUDE_PROJECT_DIR:-$(pwd)}")"
-  branch="$(git -C "${CLAUDE_PROJECT_DIR:-.}" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+  repo_name="$(repo_full_name "$input" || true)"
+  [ -n "$repo_name" ] || repo_name="$(basename "$cwd")"
+  branch="$(git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
   session_id="$(jq -r '.session_id // empty' <<< "$input" | cut -c1-8)"
 
   payload="$(jq -n \

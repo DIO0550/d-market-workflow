@@ -5,8 +5,8 @@ set -uo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
 
 input="$(cat)"
-notify_configured || exit 0
-event_enabled push || exit 0
+notify_configured "$input" || exit 0
+event_enabled "$input" push || exit 0
 
 command="$(bash_command "$input")"
 grep -qE '(^|[^[:alnum:]_-])git[[:space:]]+push' <<< "$command" || exit 0

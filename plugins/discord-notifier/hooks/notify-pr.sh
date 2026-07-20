@@ -5,8 +5,8 @@ set -uo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
 
 input="$(cat)"
-notify_configured || exit 0
-event_enabled pr || exit 0
+notify_configured "$input" || exit 0
+event_enabled "$input" pr || exit 0
 
 tool_name="$(jq -r '.tool_name // empty' <<< "$input")"
 if [ "$tool_name" != "mcp__github__create_pull_request" ]; then
