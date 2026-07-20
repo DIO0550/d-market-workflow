@@ -77,6 +77,7 @@ export DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/xxxx/yyyy"
 - 設定ファイル自体・各キーとも省略可能で、省略時はすべて有効です（ファイルがなくても動きます）
 - **Webhook URL はこのファイルには書けません**。秘密情報のため環境変数 `DISCORD_WEBHOOK_URL` でのみ受け取ります
 - `.plugin-workspace/` はワークスペースローカルな設定置き場のため Git 管理外にしてください
+- `git worktree` 内で hook が発火した場合も、設定ファイルはリポジトリのメイン working tree にある `.plugin-workspace/discord-notifier/config.json` が参照されます。通知に載るブランチ・コミットメッセージは worktree の HEAD が使われます
 
 ## devcontainer での利用
 
