@@ -96,6 +96,32 @@ export DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/xxxx/yyyy"
 - `.plugin-workspace/` はワークスペースローカルな設定置き場のため Git 管理外にしてください
 - `git worktree` 内で hook が発火した場合も、設定ファイルはリポジトリのメイン working tree にある `.plugin-workspace/discord-notifier/config.json` が参照されます。通知に載るブランチ・コミットメッセージは worktree の HEAD が使われます
 
+## worktree で通知が飛ばないとき
+
+hook スクリプト自体は worktree からの発火に対応済みで、ブランチ名・コミットメッセージ・設定ファイルはすべて main working tree 側を正しく参照します（`git rev-parse --git-common-dir` の親を workspace root として使う）。それでも worktree で通知が来ない場合、原因は **Claude Code 側がプラグインをロードしていない**可能性が高いです。
+
+Claude Code のプラグイン有効化情報（`enabledPlugins` などの設定）は、インストール時に指定したスコープに応じて次のいずれかに書かれます:
+
+| スコープ | 書き込み先 | worktree からの見え方 |
+| --- | --- | --- |
+| user | `~/.claude/settings.json` | どの worktree からも常に読まれる（推奨） |
+| project | `<repo>/.claude/settings.json` | worktree の直下に `.claude/settings.json` が無いと読まれない |
+| local | `<repo>/.claude/settings.local.json` | worktree ではなく main working tree 側だけ読まれる（設定次第） |
+
+**チェックしてみる**:
+
+1. `~/.claude/settings.json` に `discord-notifier` を含む `enabledPlugins` があるか確認する
+2. 無い場合、main working tree の `.claude/settings.json` / `.claude/settings.local.json` に入っている可能性が高い
+3. `claude` 起動後に `/plugin list` で discord-notifier が「enabled」になっているかを worktree の cwd で確認する
+
+**回避策**（いずれか）:
+
+- **推奨: user スコープで入れ直す** — 一度アンインストールしてから `/plugin install discord-notifier@d-market-workflow --scope user` のように user スコープで入れる。以後 worktree でも常にロードされます
+- main tree の `.claude/settings.json` を worktree に共有する（例: `ln -s ../<main>/.claude .claude` を worktree のルートに置く）
+- `.claude/settings.json` に `enabledPlugins` を書いて Git にコミットする（同じリポジトリを clone した全員に有効化される点だけ注意）
+
+なお `${CLAUDE_PLUGIN_ROOT}` はプラグインがロードされていれば hooks.json 実行時に正しく解決されるため（worktree の cwd に依存しません）、プラグインがロード済みの worktree で hook が動かないケースは残っていないはずです。もし該当したら issue でお知らせください。
+
 ## devcontainer での利用
 
 1. ホストのシェル設定ファイルに書き込んで永続化する:
