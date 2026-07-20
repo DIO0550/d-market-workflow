@@ -94,16 +94,57 @@ repo_full_name() {
   grep -oE '[^/:]+/[^/:]+$' <<< "$url"
 }
 
-# send_embed <input_json> <title> <description> <color>
+# pr_url_for_branch <input_json> — 現在のブランチに紐づく open な PR の URL を取得する
+# 優先順位: gh CLI > GitHub API（$GITHUB_TOKEN が必要）
+# どちらも失敗した場合は無音で終了する（PR リンクを付けないだけで通知自体は送る）。
+pr_url_for_branch() {
+  local input="$1" cwd branch owner_repo owner repo url
+  cwd="$(hook_cwd "$input")"
+  branch="$(git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+  [ -n "$branch" ] && [ "$branch" != "HEAD" ] || return 1
+
+  if command -v gh >/dev/null 2>&1; then
+    url="$(GH_PAGER='' gh -R "$cwd" pr view "$branch" --json url --jq .url 2>/dev/null || true)"
+    if [ -z "$url" ]; then
+      url="$(cd "$cwd" && GH_PAGER='' gh pr view "$branch" --json url --jq .url 2>/dev/null || true)"
+    fi
+    if [ -n "$url" ]; then
+      printf '%s\n' "$url"
+      return 0
+    fi
+  fi
+
+  if [ -n "${GITHUB_TOKEN:-}" ]; then
+    owner_repo="$(repo_full_name "$input" || true)"
+    [ -n "$owner_repo" ] || return 1
+    owner="${owner_repo%/*}"
+    repo="${owner_repo#*/}"
+    url="$(curl -sS --max-time 3 \
+      -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+      -H "Accept: application/vnd.github+json" \
+      "https://api.github.com/repos/${owner}/${repo}/pulls?head=${owner}:${branch}&state=open&per_page=1" \
+      2>/dev/null \
+      | jq -r '.[0].html_url // empty' 2>/dev/null || true)"
+    if [ -n "$url" ]; then
+      printf '%s\n' "$url"
+      return 0
+    fi
+  fi
+
+  return 1
+}
+
+# send_embed <input_json> <event_label> <details> <color> [<pr_url_override>]
 #
-# 全通知共通の基本フォーマット:
-#   - タイトル: 絵文字 + イベント名
-#   - 本文: イベントごとの詳細（PR の URL、コミットメッセージ等）
-#   - フィールド: リポジトリ / ブランチ / セッション（先頭 8 文字）
-#   - タイムスタンプ
+# レイアウト方針:
+#   - タイトル（最大サイズ）にリポジトリ名（owner/repo）を出し、GitHub リポジトリへリンクさせる
+#   - 本文冒頭でイベント名を見出し (###) にし、続けてブランチ名を太字＋絵文字で目立たせる
+#   - PR URL は override が渡されればそれを、無ければ現在のブランチから解決してリンクを付ける
+#   - セッション ID は footer に小さく載せるだけ（識別用のおまけ）
 send_embed() {
-  local input="$1" title="$2" description="$3" color="$4"
-  local cwd repo_name branch session_id payload
+  local input="$1" event="$2" details="$3" color="$4" pr_override="${5:-}"
+  local cwd repo_name branch session_id pr_url repo_url description payload
+
   cwd="$(hook_cwd "$input")"
   # ディレクトリ名はクローン先の名前次第でリポジトリ名と食い違うため、
   # origin の URL を優先し、取れない場合のみディレクトリ名に倒す
@@ -112,25 +153,47 @@ send_embed() {
   branch="$(git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
   session_id="$(jq -r '.session_id // empty' <<< "$input" | cut -c1-8)"
 
+  if [ -n "$pr_override" ]; then
+    pr_url="$pr_override"
+  else
+    pr_url="$(pr_url_for_branch "$input" 2>/dev/null || true)"
+  fi
+
+  # 本文: 見出し（イベント名） → ブランチ → 詳細 → PR リンク
+  description="### ${event}"
+  if [ -n "$branch" ]; then
+    description+=$'\n'"**🌿 \`${branch}\`**"
+  fi
+  if [ -n "$details" ]; then
+    description+=$'\n\n'"${details}"
+  fi
+  if [ -n "$pr_url" ]; then
+    description+=$'\n\n'"[🔀 Pull Request](${pr_url})"
+  fi
+
+  # owner/repo 形式なら GitHub の URL を作ってタイトルをクリック可能にする
+  case "$repo_name" in
+    */*) repo_url="https://github.com/${repo_name}" ;;
+    *)   repo_url="" ;;
+  esac
+
   payload="$(jq -n \
-    --arg title "$title" \
+    --arg title "$repo_name" \
+    --arg url "$repo_url" \
     --arg description "$description" \
-    --arg repo "$repo_name" \
-    --arg branch "$branch" \
     --arg session "$session_id" \
     --argjson color "$color" \
     '{
-      embeds: [{
-        title: $title,
-        description: $description,
-        color: $color,
-        fields: ([
-          { name: "リポジトリ", value: $repo, inline: true },
-          (if $branch != "" then { name: "ブランチ", value: $branch, inline: true } else empty end),
-          (if $session != "" then { name: "セッション", value: $session, inline: true } else empty end)
-        ]),
-        timestamp: (now | todate)
-      }]
+      embeds: [(
+        {
+          title: $title,
+          description: $description,
+          color: $color,
+          timestamp: (now | todate)
+        }
+        + (if $url != "" then { url: $url } else {} end)
+        + (if $session != "" then { footer: { text: "session: \($session)" } } else {} end)
+      )]
     }')"
 
   curl -sS --max-time 5 \
