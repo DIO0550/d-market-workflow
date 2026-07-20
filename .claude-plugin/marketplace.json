@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Claude Code Workflow Plugins Marketplace",
-    "version": "1.0.0"
+    "version": "1.0.1"
   },
   "plugins": [
     {
@@ -20,7 +20,7 @@
       "name": "discord-notifier",
       "source": "./plugins/discord-notifier",
       "description": "PR 作成・コミット・push・タスク完了を Discord Webhook に通知する hook プラグイン",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "category": "workflow",
       "tags": ["hooks", "discord", "notification"]
     },
