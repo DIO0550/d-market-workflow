@@ -14,10 +14,7 @@ if [ "$tool_name" != "mcp__github__create_pull_request" ]; then
   grep -qE '(^|[^[:alnum:]_-])gh[[:space:]]+pr[[:space:]]+create' <<< "$command" || exit 0
 fi
 
-description="Pull Request が作成されました。"
 pr_url="$(find_pr_url "$input" || true)"
-[ -n "$pr_url" ] && description="Pull Request が作成されました。
-${pr_url}"
 
-send_embed "$input" "🔀 PR 作成" "$description" 7506394
+send_embed "$input" "🔀 PR 作成" "Pull Request が作成されました。" 7506394 "$pr_url"
 exit 0

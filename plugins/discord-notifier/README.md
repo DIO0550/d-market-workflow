@@ -17,25 +17,42 @@ hook は通知パターンごとにスクリプトが分かれており、`hooks
 
 ## 通知の基本フォーマット
 
-すべての通知は `hooks/lib/common.sh` の `send_embed` が生成する共通の embed フォーマットで送られます。各 hook が渡すのはタイトル・詳細・色だけです。リポジトリ名は origin の URL から `owner/repo` 形式で取得し、リモートが取得できない場合のみプロジェクトディレクトリ名を使います。
+すべての通知は `hooks/lib/common.sh` の `send_embed` が生成する共通の embed フォーマットで送られます。各 hook が渡すのはイベント名・詳細・色（と PR 作成時は PR URL）だけです。リポジトリ名は origin の URL から `owner/repo` 形式で取得し、リモートが取得できない場合のみプロジェクトディレクトリ名を使います。
+
+レイアウト方針:
+
+- **リポジトリ名は embed のタイトル**（一番大きく表示される要素）に置き、`owner/repo` の場合は GitHub のリポジトリページへリンクします
+- **ブランチ名は本文冒頭に太字＋🌿 絵文字**で目立たせます
+- **PR リンクはどの通知にも付きます**。現在のブランチに紐づく open な PR を `gh` CLI もしくは GitHub API（`$GITHUB_TOKEN` が必要）で解決し、取得できた場合のみ `🔀 Pull Request` として本文末尾にリンクします
+- セッション ID は footer に小さく載せるだけ（識別用のおまけ）
 
 ```
-┌─────────────────────────────────┐
-│ ⬆️ push 完了                     │  ← タイトル（絵文字 + イベント名）
-│ リモートへ push しました。         │  ← 本文（イベントごとの詳細）
-│                                 │
-│ リポジトリ         ブランチ  セッション │  ← 共通フィールド
-│ owner/my-repo    main     abc12345 │
-│ 2026-07-19 14:00                │  ← タイムスタンプ
-└─────────────────────────────────┘
+┌────────────────────────────────────────┐
+│ owner/my-repo                          │  ← タイトル（リポジトリ、クリックで GitHub へ）
+│ ### ⬆️ push 完了                        │  ← 本文の見出し（イベント名）
+│ **🌿 `feature/awesome-branch`**         │  ← ブランチを太字＋絵文字で強調
+│                                        │
+│ リモートへ push しました。               │  ← 詳細
+│                                        │
+│ 🔀 Pull Request                        │  ← 現在ブランチの PR リンク（取得できた場合）
+│ ────────────────────────────────────── │
+│ session: abc12345      2026-07-19 14:00│  ← footer（小さく）＋タイムスタンプ
+└────────────────────────────────────────┘
 ```
 
-| パターン | タイトル | 色 | 本文の詳細 |
+| パターン | イベント名（見出し） | 色 | 詳細 |
 | --- | --- | --- | --- |
-| PR 作成 | 🔀 PR 作成 | 紫 | PR の URL（取得できた場合） |
+| PR 作成 | 🔀 PR 作成 | 紫 | 作成直後のツール出力から取得した PR URL |
 | コミット (Fix) | 🔧 コミット (Fix) | 黄 | 直近のコミットメッセージ |
-| push | ⬆️ push 完了 | 青 | なし |
-| タスク完了 | ✅ タスク完了 | 緑 | なし |
+| push | ⬆️ push 完了 | 青 | 「リモートへ push しました。」 |
+| タスク完了 | ✅ タスク完了 | 緑 | 「Claude が応答を完了しました。」 |
+
+### PR リンクの解決について
+
+PR 作成通知以外（コミット・push・タスク完了）でも、現在のブランチに open な PR が存在すればリンクを追加します。解決順は次のとおりで、どちらも失敗した場合は PR リンクを付けずに通知を送ります（通知自体は必ず送られます）。
+
+1. `gh` CLI が使えて認証済み: `gh pr view <branch> --json url`
+2. 環境変数 `GITHUB_TOKEN` が設定されている: GitHub REST API `GET /repos/{owner}/{repo}/pulls?head={owner}:{branch}&state=open`
 
 ## セットアップ
 
@@ -78,6 +95,32 @@ export DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/xxxx/yyyy"
 - **Webhook URL はこのファイルには書けません**。秘密情報のため環境変数 `DISCORD_WEBHOOK_URL` でのみ受け取ります
 - `.plugin-workspace/` はワークスペースローカルな設定置き場のため Git 管理外にしてください
 - `git worktree` 内で hook が発火した場合も、設定ファイルはリポジトリのメイン working tree にある `.plugin-workspace/discord-notifier/config.json` が参照されます。通知に載るブランチ・コミットメッセージは worktree の HEAD が使われます
+
+## worktree で通知が飛ばないとき
+
+hook スクリプト自体は worktree からの発火に対応済みで、ブランチ名・コミットメッセージ・設定ファイルはすべて main working tree 側を正しく参照します（`git rev-parse --git-common-dir` の親を workspace root として使う）。それでも worktree で通知が来ない場合、原因は **Claude Code 側がプラグインをロードしていない**可能性が高いです。
+
+Claude Code のプラグイン有効化情報（`enabledPlugins` などの設定）は、インストール時に指定したスコープに応じて次のいずれかに書かれます:
+
+| スコープ | 書き込み先 | worktree からの見え方 |
+| --- | --- | --- |
+| user | `~/.claude/settings.json` | どの worktree からも常に読まれる（推奨） |
+| project | `<repo>/.claude/settings.json` | worktree の直下に `.claude/settings.json` が無いと読まれない |
+| local | `<repo>/.claude/settings.local.json` | worktree ではなく main working tree 側だけ読まれる（設定次第） |
+
+**チェックしてみる**:
+
+1. `~/.claude/settings.json` に `discord-notifier` を含む `enabledPlugins` があるか確認する
+2. 無い場合、main working tree の `.claude/settings.json` / `.claude/settings.local.json` に入っている可能性が高い
+3. `claude` 起動後に `/plugin list` で discord-notifier が「enabled」になっているかを worktree の cwd で確認する
+
+**回避策**（いずれか）:
+
+- **推奨: user スコープで入れ直す** — 一度アンインストールしてから `/plugin install discord-notifier@d-market-workflow --scope user` のように user スコープで入れる。以後 worktree でも常にロードされます
+- main tree の `.claude/settings.json` を worktree に共有する（例: `ln -s ../<main>/.claude .claude` を worktree のルートに置く）
+- `.claude/settings.json` に `enabledPlugins` を書いて Git にコミットする（同じリポジトリを clone した全員に有効化される点だけ注意）
+
+なお `${CLAUDE_PLUGIN_ROOT}` はプラグインがロードされていれば hooks.json 実行時に正しく解決されるため（worktree の cwd に依存しません）、プラグインがロード済みの worktree で hook が動かないケースは残っていないはずです。もし該当したら issue でお知らせください。
 
 ## devcontainer での利用
 
