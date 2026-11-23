@@ -8,7 +8,7 @@ allowed-tools: Read, Glob, Write, Edit, Bash, AskUserQuestion
 # post-compact-docs-loader セットアップ
 
 compact（コンテキスト圧縮）完了後にAIが自動で再読み込みするドキュメントファイルの一覧を設定する。
-設定内容は `plugins/post-compact-docs-loader/docs-list.txt` に保存される。
+設定内容は `${CLAUDE_SKILL_DIR}/../../docs-list.txt` に保存される。
 
 ## 前提情報
 
@@ -21,7 +21,7 @@ compact（コンテキスト圧縮）完了後にAIが自動で再読み込み�
 
 ### ステップ1: 既存設定の確認
 
-`plugins/post-compact-docs-loader/docs-list.txt` を Read で読み取る。
+`${CLAUDE_SKILL_DIR}/../../docs-list.txt` を Read で読み取る。
 
 - コメント行（`#` で始まる行）と空行を除いた実パスの一覧を把握する
 - 既にエントリがある場合は、現在の設定内容をユーザーに提示し、AskUserQuestion で「追加・変更するか、最初から設定し直すか」を確認する
@@ -68,7 +68,7 @@ compact後に再読み込みするドキュメントを選んでください:
 
 ### ステップ4: docs-list.txt への書き込み
 
-選択されたファイルを `plugins/post-compact-docs-loader/docs-list.txt` に Write ツールで書き込む。
+選択されたファイルを `${CLAUDE_SKILL_DIR}/../../docs-list.txt` に Write ツールで書き込む。
 
 フォーマット:
 ```
@@ -86,18 +86,18 @@ docs/api-spec.md
 Bash で以下を実行する:
 
 ```bash
-ls -l plugins/post-compact-docs-loader/hooks/load-docs.sh
+ls -l "${CLAUDE_SKILL_DIR}/../../hooks/load-docs.sh"
 ```
 
 実行権限（`x`）がない場合は以下を実行:
 
 ```bash
-chmod +x plugins/post-compact-docs-loader/hooks/load-docs.sh
+chmod +x "${CLAUDE_SKILL_DIR}/../../hooks/load-docs.sh"
 ```
 
 ### ステップ6: 検証と完了報告
 
-書き込んだ `docs-list.txt` を Read で再読み込みし、内容が正しいことを確認する。
+書き込んだ `${CLAUDE_SKILL_DIR}/../../docs-list.txt` を Read で再読み込みし、内容が正しいことを確認する。
 
 以下の形式で完了報告する:
 
@@ -110,5 +110,5 @@ chmod +x plugins/post-compact-docs-loader/hooks/load-docs.sh
 
 compact が実行されると、これらのファイルが自動的に再読み込みされます。
 設定を変更したい場合は、再度このスキルを実行するか、
-plugins/post-compact-docs-loader/docs-list.txt を直接編集してください。
+${CLAUDE_SKILL_DIR}/../../docs-list.txt を直接編集してください。
 ```
