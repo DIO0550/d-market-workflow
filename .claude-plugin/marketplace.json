@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Claude Code Workflow Plugins Marketplace",
-    "version": "1.0.1"
+    "version": "1.0.2"
   },
   "plugins": [
     {
@@ -28,7 +28,7 @@
       "name": "post-compact-docs-loader",
       "source": "./plugins/post-compact-docs-loader",
       "description": "Compact完了後に指定したドキュメントファイルをAIに再読み込みさせるhookプラグイン",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "category": "workflow",
       "tags": ["hooks", "compact", "docs-reload"]
     }
